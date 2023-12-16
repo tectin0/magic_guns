@@ -1,0 +1,5 @@
+[workspace]
+members = [
+    "magic_guns",
+    "map_editor",
+]
