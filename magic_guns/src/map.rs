@@ -28,7 +28,7 @@ pub fn make_map(mut commands: Commands, asset_server: Res<AssetServer>) {
                     custom_size: Some(Vec2::new(10.0, 10.0)),
                     ..Default::default()
                 },
-                texture: asset_server.load("grey_square.png"),
+                texture: asset_server.load("map/grey_square.png"),
                 transform: Transform::from_xyz(x, y, 0.0),
                 ..Default::default()
             },
