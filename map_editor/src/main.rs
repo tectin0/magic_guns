@@ -1,14 +1,11 @@
-mod base;
-mod custom_shader;
 mod keyboard_events;
-mod math;
+
 mod mouse_events;
 mod ui;
 
-use base::{BaseMapMeshInfo, BaseMesh};
 use bevy::{
     audio::Decodable,
-    input::common_conditions::input_just_pressed,
+    input::{common_conditions::input_just_pressed, mouse::MouseButtonInput},
     pbr::{
         wireframe::{Wireframe, WireframeColor, WireframeConfig, WireframePlugin},
         ExtendedMaterial,
@@ -23,17 +20,18 @@ use bevy::{
     sprite::{MaterialMesh2dBundle, Mesh2dHandle},
 };
 use bevy_egui::{egui, EguiContexts, EguiPlugin};
-use custom_shader::{CustomMaterial, CustomMaterialPlugin};
 
 use keyboard_events::handle_keyboard_events;
-use mouse_events::handle_lmb;
-use ui::{ui_system, MapTextureNames, SelectedMapTextureName};
+
+use mouse_events::handle_mouse_events;
+use shared::custom_shader::{CustomMaterial, CustomMaterialPlugin};
+use ui::{ui_system, MapTextureNames, SelectedMapTextureName, TopPanelRect};
 
 fn main() {
     App::new()
-        .init_resource::<BaseMapMeshInfo>()
         .init_resource::<MapTextureNames>()
         .init_resource::<SelectedMapTextureName>()
+        .init_resource::<TopPanelRect>()
         .add_plugins(DefaultPlugins.set(AssetPlugin {
             file_path: "../assets".to_string(),
             ..Default::default()
@@ -44,7 +42,7 @@ fn main() {
         .add_systems(
             Update,
             (
-                handle_lmb.run_if(input_just_pressed(MouseButton::Left)),
+                handle_mouse_events,
                 handle_keyboard_events.run_if(input_just_pressed(KeyCode::Back)),
             ),
         )
@@ -59,9 +57,6 @@ fn startup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<CustomMaterial>>,
     asset_server: Res<AssetServer>,
-    base_map_mesh_info: Res<BaseMapMeshInfo>,
 ) {
     commands.spawn((Camera2dBundle::default(), MainCamera));
-
-    commands.spawn(base_map_mesh_info.make_bundle(&mut meshes, &mut materials));
 }

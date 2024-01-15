@@ -1,0 +1,12 @@
+[package]
+name = "shared"
+version = "0.1.0"
+edition = "2021"
+
+
+[dependencies]
+bevy = "0.12.1"
+bevy_rapier2d = "0.23.0"
+delaunator = "1.0.2"
+rkyv = { version = "0.7.43", features = ["validation"] }
+rand = "0.8.5"

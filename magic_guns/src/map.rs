@@ -1,38 +1,53 @@
 use bevy::{
-    asset::AssetServer,
+    asset::{AssetServer, Assets},
     ecs::{
         component::Component,
-        system::{Commands, Res},
+        system::{Commands, Res, ResMut},
     },
     math::Vec2,
-    sprite::{Sprite, SpriteBundle},
+    render::{color::Color, mesh::Mesh},
+    sprite::{ColorMaterial, MaterialMesh2dBundle, Sprite, SpriteBundle},
     transform::components::Transform,
 };
+use bevy_rapier2d::geometry::Collider;
 use rand::Rng;
+use shared::{
+    custom_shader::CustomMaterial,
+    meshes::{MapMesh, SelectedEntity},
+};
 
 #[derive(Component)]
 pub struct MapTile {}
 
-pub fn make_map(mut commands: Commands, asset_server: Res<AssetServer>) {
-    let number_map_tiles = 1000;
+pub fn make_map(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    // TODO: unncessary
+    mut custom_materials: ResMut<Assets<CustomMaterial>>,
+) {
+    let map_meshes = MapMesh::meshes_from_asset_directory(&mut meshes, &mut custom_materials);
 
-    let mut rng = rand::thread_rng();
+    for map_mesh in map_meshes {
+        let collider = map_mesh.collider.clone();
 
-    for _ in 0..number_map_tiles {
-        let x = rng.gen_range(-500.0..500.0);
-        let y = rng.gen_range(-500.0..500.0);
-
-        commands.spawn((
-            SpriteBundle {
-                sprite: Sprite {
-                    custom_size: Some(Vec2::new(10.0, 10.0)),
+        let bundle = (
+            MaterialMesh2dBundle {
+                mesh: map_mesh.mesh_handle.clone(),
+                material: materials.add(ColorMaterial {
+                    color: Color::rgb(0.0, 0.0, 0.0),
                     ..Default::default()
-                },
-                texture: asset_server.load("map/grey_square.png"),
-                transform: Transform::from_xyz(x, y, 0.0),
+                }),
                 ..Default::default()
             },
-            MapTile {},
-        ));
+            map_mesh,
+            SelectedEntity,
+        );
+
+        let mut entity = commands.spawn(bundle);
+
+        if let Some(collider) = collider {
+            entity.insert(collider);
+        }
     }
 }

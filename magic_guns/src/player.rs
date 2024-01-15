@@ -11,35 +11,53 @@ use bevy::{
     time::Time,
     transform::components::Transform,
 };
+use bevy_rapier2d::{
+    control::KinematicCharacterController,
+    dynamics::{RigidBody, Velocity},
+    geometry::{Collider, Restitution},
+    rapier::dynamics::RigidBodyVelocity,
+};
 
 use crate::{bullets::Bullet, camera::MainCamera, cursor::CursorWorldCoords};
 
 #[derive(Component)]
 pub struct Player {}
 
-#[derive(Resource, Default)]
-pub struct PlayerPosition(Vec2);
-
 pub fn player_shooting(
     mut commands: Commands,
     cursor_position: Res<CursorWorldCoords>,
-    player_position: Res<PlayerPosition>,
+    player_position: Query<&Transform, With<Player>>,
     asset_server: Res<AssetServer>,
 ) {
-    let direction = cursor_position.0 - player_position.0;
+    let player_position = player_position.single();
+
+    let direction = cursor_position.0 - player_position.translation.truncate();
 
     let direction = direction.normalize();
+
+    let bullet_size = Vec2::new(5.0, 5.0);
 
     commands.spawn((
         SpriteBundle {
             sprite: Sprite {
-                custom_size: Some(Vec2::new(5.0, 5.0)),
+                custom_size: Some(bullet_size),
                 ..Default::default()
             },
-            texture: asset_server.load("blue_sphere.png"),
-            transform: Transform::from_xyz(player_position.0.x, player_position.0.y, 0.0),
+            texture: asset_server.load("pink_square.png"),
+            transform: Transform::from_xyz(
+                player_position.translation.x + direction.x * player_position.scale.x,
+                player_position.translation.y + direction.y * player_position.scale.y,
+                0.0,
+            ),
             ..Default::default()
         },
+        Collider::ball(bullet_size.x),
+        RigidBody::Dynamic,
+        Velocity {
+            linvel: Vec2::new(direction.x, direction.y) * 500.0,
+            ..Default::default()
+        },
+        Restitution::coefficient(0.7),
         Bullet {
             direction,
             speed: 500.0,
@@ -51,19 +69,13 @@ pub fn player_shooting(
 pub fn player_movement(
     time: Res<Time>,
     keys: Res<Input<KeyCode>>,
-    mut set: ParamSet<(
-        Query<&mut Transform, With<Player>>,
-        Query<&mut Transform, With<MainCamera>>,
-    )>,
-    mut player_position: ResMut<PlayerPosition>,
+    mut q_player: Query<&mut KinematicCharacterController, With<Player>>,
 ) {
     const SPEED: f32 = 200.0;
 
-    let mut player_query = set.p0();
+    let mut controller = q_player.single_mut();
 
-    let mut transform = player_query.single_mut();
-
-    let mut direction = Vec3::ZERO;
+    let mut direction = Vec2::ZERO;
 
     if keys.pressed(KeyCode::A) {
         direction.x -= 1.0;
@@ -84,18 +96,6 @@ pub fn player_movement(
     direction = direction.normalize();
 
     if direction.length_squared() > 0.0 {
-        transform.translation += direction * time.delta_seconds() * SPEED;
-    }
-
-    player_position.0 = transform.translation.truncate();
-
-    drop(player_query);
-
-    let mut camera_query = set.p1();
-
-    let mut camera_transform = camera_query.single_mut();
-
-    if direction.length_squared() > 0.0 {
-        camera_transform.translation += direction * time.delta_seconds() * SPEED;
+        controller.translation = Some(direction * time.delta_seconds() * SPEED);
     }
 }

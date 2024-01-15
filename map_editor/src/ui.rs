@@ -1,12 +1,29 @@
-use bevy::ecs::system::{Res, ResMut, Resource};
+use bevy::{
+    asset::Assets,
+    ecs::system::{Query, Res, ResMut, Resource},
+    render::mesh::Mesh,
+};
 use bevy_egui::{egui, EguiContexts};
+use shared::meshes::MapMesh;
+
+#[derive(Resource)]
+pub struct TopPanelRect(pub egui::Rect);
+
+impl Default for TopPanelRect {
+    fn default() -> Self {
+        Self(egui::Rect::ZERO)
+    }
+}
 
 pub(crate) fn ui_system(
     mut contexts: EguiContexts,
     map_texture_names: Res<MapTextureNames>,
     mut selected_map_texture_name: ResMut<SelectedMapTextureName>,
+    map_meshes: Query<&MapMesh>,
+    meshes: Res<Assets<Mesh>>,
+    mut top_panel_rect: ResMut<TopPanelRect>,
 ) {
-    egui::TopBottomPanel::top("TopMenu").show(contexts.ctx_mut(), |ui| {
+    let top_panel = egui::TopBottomPanel::top("TopMenu").show(contexts.ctx_mut(), |ui| {
         ui.horizontal(|ui| {
             egui::ComboBox::from_label("Tile")
                 .selected_text(selected_map_texture_name.0.clone())
@@ -19,8 +36,22 @@ pub(crate) fn ui_system(
                         );
                     }
                 });
+
+            ui.button("Save All").clicked().then(|| {
+                for map_mesh in map_meshes.iter() {
+                    map_mesh.mesh_to_file(&meshes);
+                }
+            });
+
+            ui.button("Delete Meshes").clicked().then(|| {
+                let path = std::path::Path::new("assets/meshes");
+
+                std::fs::remove_dir_all(path).unwrap();
+            });
         });
     });
+
+    top_panel_rect.0 = top_panel.response.rect;
 }
 
 #[derive(Resource)]

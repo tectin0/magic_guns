@@ -3,4 +3,5 @@ resolver = "2"
 members = [
     "magic_guns",
     "map_editor",
+    "shared",
 ]

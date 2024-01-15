@@ -47,3 +47,36 @@ impl IsPointInTriangle for [Vec2; 3] {
         (u >= 0.0) && (v >= 0.0) && (u + v < 1.0)
     }
 }
+
+pub fn triangulate(points: &[[f32; 3]]) -> Vec<u32> {
+    let points = points
+        .iter()
+        .map(|point| delaunator::Point {
+            x: point[0] as f64,
+            y: point[1] as f64,
+        })
+        .collect::<Vec<delaunator::Point>>();
+
+    let result = delaunator::triangulate(&points);
+
+    result.triangles.iter().map(|index| *index as u32).collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::math::triangulate;
+
+    #[test]
+    fn test_triangulate() {
+        let points = vec![
+            [0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [1.0, 1.0, 0.0],
+            [0.0, 1.0, 0.0],
+        ];
+
+        let result = triangulate(&points);
+
+        assert_eq!(result, vec![0, 2, 1, 0, 3, 2]);
+    }
+}

@@ -6,11 +6,17 @@ mod player;
 mod setup;
 
 use bevy::{input::common_conditions::input_just_pressed, prelude::*};
+use bevy_rapier2d::{
+    plugin::{NoUserData, RapierConfiguration, RapierPhysicsPlugin},
+    render::RapierDebugRenderPlugin,
+};
 use bullets::update_bullets;
+use camera::stick_camera_to_player;
 use cursor::{cursor_world_coords, CursorWorldCoords};
 use map::make_map;
-use player::{player_movement, player_shooting, PlayerPosition};
+use player::{player_movement, player_shooting};
 use setup::setup;
+use shared::custom_shader::CustomMaterialPlugin;
 
 fn main() {
     App::new()
@@ -19,15 +25,23 @@ fn main() {
             ..Default::default()
         }))
         .init_resource::<CursorWorldCoords>()
-        .init_resource::<PlayerPosition>()
+        .add_plugins(CustomMaterialPlugin)
+        .add_plugins((
+            RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(10.0),
+            RapierDebugRenderPlugin::default(),
+        ))
+        .insert_resource(RapierConfiguration {
+            gravity: Vec2::ZERO.into(),
+            ..Default::default()
+        })
         .add_systems(Startup, setup)
         .add_systems(Startup, make_map)
-        .add_systems(Update, player_movement)
+        .add_systems(Update, (player_movement, stick_camera_to_player))
         .add_systems(
             Update,
             player_shooting.run_if(input_just_pressed(MouseButton::Left)),
         )
         .add_systems(Update, cursor_world_coords)
-        .add_systems(Update, update_bullets)
+        // .add_systems(Update, update_bullets)
         .run();
 }
