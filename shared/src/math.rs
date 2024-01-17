@@ -62,6 +62,14 @@ pub fn triangulate(points: &[[f32; 3]]) -> Vec<u32> {
     result.triangles.iter().map(|index| *index as u32).collect()
 }
 
+pub fn screen_to_rapier_coords(point: Vec2, screen: Vec2) -> Vec2 {
+    // Conver between screen coordinates with origin at the top left
+    // to rapier coordinates with origin at the center
+    let x = point.x - screen.x / 2.0;
+    let y = screen.y / 2.0 - point.y;
+    Vec2::new(x, y)
+}
+
 #[cfg(test)]
 mod tests {
     use crate::math::triangulate;

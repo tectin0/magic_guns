@@ -3,10 +3,10 @@ use bevy::{
     ecs::{
         component::Component,
         query::With,
-        system::{Commands, ParamSet, Query, Res, ResMut, Resource},
+        system::{Commands, Query, Res},
     },
     input::{keyboard::KeyCode, Input},
-    math::{Vec2, Vec3},
+    math::Vec2,
     sprite::{Sprite, SpriteBundle},
     time::Time,
     transform::components::Transform,
@@ -15,10 +15,9 @@ use bevy_rapier2d::{
     control::KinematicCharacterController,
     dynamics::{RigidBody, Velocity},
     geometry::{Collider, Restitution},
-    rapier::dynamics::RigidBodyVelocity,
 };
 
-use crate::{bullets::Bullet, camera::MainCamera, cursor::CursorWorldCoords};
+use crate::{bullets::Bullet, cursor::CursorWorldCoords};
 
 #[derive(Component)]
 pub struct Player {}

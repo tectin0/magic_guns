@@ -1,7 +1,6 @@
 use bevy::{
-    asset::{Assets, Handle},
+    asset::Assets,
     ecs::{
-        component::Component,
         entity::Entity,
         event::EventReader,
         query::With,
@@ -12,18 +11,14 @@ use bevy::{
         ButtonState,
     },
     math::Vec2,
-    render::{
-        camera::{self, Camera},
-        color::Color,
-        mesh::{Indices, Mesh},
-        render_resource::PrimitiveTopology,
-    },
-    sprite::{MaterialMesh2dBundle, Mesh2dHandle},
+    render::{camera::Camera, mesh::Mesh},
     transform::components::GlobalTransform,
     window::Window,
 };
+use bevy_rapier2d::{pipeline::QueryFilter, plugin::RapierContext};
 use shared::{
     custom_shader::CustomMaterial,
+    math::screen_to_rapier_coords,
     meshes::{MapMesh, SelectedEntity},
 };
 
@@ -38,6 +33,7 @@ pub fn handle_mouse_events(
     q_windows: Query<&Window>,
     q_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
     top_panel_rect: Res<TopPanelRect>,
+    rapier_context: Res<RapierContext>,
 ) {
     for event in mouse_button_input_events.read() {
         if event.state != ButtonState::Pressed {
@@ -48,21 +44,11 @@ pub fn handle_mouse_events(
             MouseButton::Left => {
                 println!("LMB pressed");
 
-                let position = match q_windows.single().cursor_position().and_then(|cursor| {
-                    if cursor.y < top_panel_rect.0.max.y {
-                        return None;
-                    }
-
-                    let (camera, camera_transform) = q_camera.single();
-
-                    Some(
-                        camera
-                            .viewport_to_world(camera_transform, cursor)
-                            .unwrap()
-                            .origin
-                            .truncate(),
-                    )
-                }) {
+                let position = match window_query_to_cursor_world_pos_without_top_panel(
+                    &q_windows,
+                    &top_panel_rect,
+                    &q_camera,
+                ) {
                     Some(position) => position,
                     None => continue,
                 };
@@ -73,7 +59,7 @@ pub fn handle_mouse_events(
                         let map_mesh = selected_entity.0;
 
                         let mesh = map_mesh.get_mesh_mut(&meshes);
-                        let material = map_mesh.get_material_mut(&materials);
+                        let _material = map_mesh.get_material_mut(&materials);
 
                         let vertex_position_attribute =
                             mesh.attribute(Mesh::ATTRIBUTE_POSITION).unwrap();
@@ -87,17 +73,8 @@ pub fn handle_mouse_events(
                         let map_mesh =
                             MapMesh::mesh_from_vertices(vertices, &mut meshes, &mut materials);
 
-                        let bundle = (
-                            MaterialMesh2dBundle {
-                                mesh: map_mesh.mesh_handle.clone(),
-                                material: map_mesh.material_handle.clone(),
-                                ..Default::default()
-                            },
-                            map_mesh,
-                            SelectedEntity,
-                        );
-
-                        let entity = commands.spawn(bundle);
+                        let mut entity = commands.spawn(map_mesh.into_bundle());
+                        entity.insert(SelectedEntity);
 
                         println!("Spawned entity: {:?}", entity.id());
 
@@ -109,17 +86,8 @@ pub fn handle_mouse_events(
                         let map_mesh =
                             MapMesh::mesh_from_vertices(vertices, &mut meshes, &mut materials);
 
-                        let bundle = (
-                            MaterialMesh2dBundle {
-                                mesh: map_mesh.mesh_handle.clone(),
-                                material: map_mesh.material_handle.clone(),
-                                ..Default::default()
-                            },
-                            map_mesh,
-                            SelectedEntity,
-                        );
-
-                        let entity = commands.spawn(bundle);
+                        let mut entity = commands.spawn(map_mesh.into_bundle());
+                        entity.insert(SelectedEntity);
 
                         println!("Spawned entity: {:?}", entity.id());
                     }
@@ -131,16 +99,44 @@ pub fn handle_mouse_events(
                 if let Some(position) = q_windows.single().cursor_position() {
                     println!("Mouse position: {:?}", position);
 
-                    let (camera, camera_transform) = q_camera.single();
+                    let screen = Vec2::new(q_windows.single().width(), q_windows.single().height());
 
-                    let position = camera
-                        .viewport_to_world(camera_transform, position)
-                        .unwrap()
-                        .origin
-                        .truncate();
+                    let point = q_windows.single().cursor_position().unwrap();
+                    let point = screen_to_rapier_coords(point, screen);
+
+                    let filter = QueryFilter::default();
+
+                    rapier_context.intersections_with_point(point, filter, |entity| {
+                        // Callback called on each collider with a shape containing the point.
+                        println!("The entity {:?} contains the point.", entity);
+                        // Return `false` instead if we want to stop searching for other colliders containing this point.
+                        true
+                    });
                 }
             }
             _ => {}
         }
     }
+}
+
+fn window_query_to_cursor_world_pos_without_top_panel(
+    q_windows: &Query<'_, '_, &Window>,
+    top_panel_rect: &Res<'_, TopPanelRect>,
+    q_camera: &Query<'_, '_, (&Camera, &GlobalTransform), With<MainCamera>>,
+) -> Option<Vec2> {
+    q_windows.single().cursor_position().and_then(|cursor| {
+        if cursor.y < top_panel_rect.0.max.y {
+            return None;
+        }
+
+        let (camera, camera_transform) = q_camera.single();
+
+        Some(
+            camera
+                .viewport_to_world(camera_transform, cursor)
+                .unwrap()
+                .origin
+                .truncate(),
+        )
+    })
 }

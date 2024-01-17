@@ -8,7 +8,6 @@
 #![allow(clippy::type_complexity)]
 
 use bevy::{
-    pbr::{MaterialPipeline, MaterialPipelineKey},
     prelude::*,
     render::{
         mesh::MeshVertexBufferLayout,
@@ -17,7 +16,7 @@ use bevy::{
             SpecializedMeshPipelineError,
         },
     },
-    sprite::{Material2d, Material2dKey, Material2dPipeline, Material2dPlugin},
+    sprite::{Material2d, Material2dKey, Material2dPlugin},
 };
 
 #[derive(Asset, AsBindGroup, Reflect, Debug, Clone, Default)]
@@ -51,7 +50,7 @@ impl Material2d for CustomMaterial {
         _layout: &MeshVertexBufferLayout,
         _key: Material2dKey<Self>,
     ) -> Result<(), SpecializedMeshPipelineError> {
-        descriptor.primitive.polygon_mode = PolygonMode::Line;
+        descriptor.primitive.polygon_mode = PolygonMode::Fill;
         Ok(())
     }
 }

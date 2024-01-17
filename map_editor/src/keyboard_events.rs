@@ -1,10 +1,8 @@
 use bevy::{
     asset::Assets,
     ecs::{
-        entity::Entity,
         event::EventReader,
-        query::With,
-        system::{Commands, Query, ResMut},
+        system::{Commands, ResMut},
     },
     input::{
         keyboard::{KeyCode, KeyboardInput},
@@ -15,9 +13,9 @@ use bevy::{
 use shared::custom_shader::CustomMaterial;
 
 pub fn handle_keyboard_events(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<CustomMaterial>>,
+    _commands: Commands,
+    _meshes: ResMut<Assets<Mesh>>,
+    _materials: ResMut<Assets<CustomMaterial>>,
 
     mut key_event_reader: EventReader<KeyboardInput>,
 ) {

@@ -14,7 +14,7 @@ use crate::camera::MainCamera;
 #[derive(Resource, Default)]
 pub struct CursorWorldCoords(pub Vec2);
 
-pub fn cursor_world_coords(
+pub fn update_cursor(
     mut cursor_world_coords: ResMut<CursorWorldCoords>,
     q_window: Query<&Window, With<PrimaryWindow>>,
     q_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,

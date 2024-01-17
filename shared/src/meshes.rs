@@ -1,20 +1,17 @@
-use std::ops::Deref;
-
 use bevy::{
-    asset::{Asset, Assets, Handle},
+    asset::{Assets, Handle},
     ecs::{
+        bundle::Bundle,
         component::Component,
-        entity::Entity,
-        system::{Res, ResMut, Resource},
+        system::{Res, ResMut},
     },
     math::Vec2,
     render::{
         color::Color,
-        extract_resource::ExtractResource,
         mesh::{Indices, Mesh},
         render_resource::PrimitiveTopology,
     },
-    sprite::Mesh2dHandle,
+    sprite::{MaterialMesh2dBundle, Mesh2dHandle},
 };
 use bevy_rapier2d::geometry::Collider;
 use rkyv::{Archive, Deserialize, Serialize};
@@ -44,6 +41,23 @@ impl MapMesh {
             mesh_handle,
             material_handle,
             collider,
+        }
+    }
+
+    pub fn get_vertices(&self, meshes: &Res<Assets<Mesh>>) -> Vec<[f32; 3]> {
+        let mesh = self.get_mesh(meshes);
+
+        let vertex_position_attribute = mesh.attribute(Mesh::ATTRIBUTE_POSITION).unwrap();
+
+        vertex_position_attribute.as_float3().unwrap().to_vec()
+    }
+
+    pub fn get_indices(&self, meshes: &Res<Assets<Mesh>>) -> Vec<u32> {
+        let mesh = self.get_mesh(meshes);
+
+        match mesh.indices().unwrap() {
+            Indices::U32(indices) => indices.to_vec(),
+            Indices::U16(indices) => indices.iter().map(|index| *index as u32).collect(),
         }
     }
 
@@ -128,11 +142,12 @@ impl MapMesh {
 
         mesh.set_indices(Some(Indices::U32(indices.clone())));
 
-        let mesh_handle = Mesh2dHandle(meshes.add(mesh.clone()));
+        let _mesh_handle = Mesh2dHandle(meshes.add(mesh.clone()));
 
         let mesh_handle = Mesh2dHandle(meshes.add(mesh));
         let material_handle = materials.add(CustomMaterial {
-            color: Color::RED,
+            // steel blue
+            color: Color::rgb(0.27, 0.51, 0.71),
             positions: flatten_vertices,
             ..Default::default()
         });
@@ -175,4 +190,27 @@ impl MapMesh {
     ) -> &'a CustomMaterial {
         materials.get(self.material_handle.clone()).unwrap()
     }
+
+    pub fn into_bundle(self) -> MapMeshBundle {
+        MapMeshBundle {
+            material_mesh_2d_bundle: MaterialMesh2dBundle {
+                mesh: self.mesh_handle.clone(),
+                material: self.material_handle.clone(),
+                ..Default::default()
+            },
+            collider: self
+                .collider
+                .clone()
+                .or_else(|| Some(Collider::default()))
+                .unwrap(),
+            map_mesh: self,
+        }
+    }
+}
+
+#[derive(Bundle)]
+pub struct MapMeshBundle {
+    pub map_mesh: MapMesh,
+    pub material_mesh_2d_bundle: MaterialMesh2dBundle<CustomMaterial>,
+    pub collider: Collider,
 }

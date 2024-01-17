@@ -10,9 +10,9 @@ use bevy_rapier2d::{
     plugin::{NoUserData, RapierConfiguration, RapierPhysicsPlugin},
     render::RapierDebugRenderPlugin,
 };
-use bullets::update_bullets;
+
 use camera::stick_camera_to_player;
-use cursor::{cursor_world_coords, CursorWorldCoords};
+use cursor::{update_cursor, CursorWorldCoords};
 use map::make_map;
 use player::{player_movement, player_shooting};
 use setup::setup;
@@ -31,7 +31,7 @@ fn main() {
             RapierDebugRenderPlugin::default(),
         ))
         .insert_resource(RapierConfiguration {
-            gravity: Vec2::ZERO.into(),
+            gravity: Vec2::ZERO,
             ..Default::default()
         })
         .add_systems(Startup, setup)
@@ -41,7 +41,7 @@ fn main() {
             Update,
             player_shooting.run_if(input_just_pressed(MouseButton::Left)),
         )
-        .add_systems(Update, cursor_world_coords)
+        .add_systems(Update, update_cursor)
         // .add_systems(Update, update_bullets)
         .run();
 }

@@ -3,24 +3,13 @@ mod keyboard_events;
 mod mouse_events;
 mod ui;
 
-use bevy::{
-    audio::Decodable,
-    input::{common_conditions::input_just_pressed, mouse::MouseButtonInput},
-    pbr::{
-        wireframe::{Wireframe, WireframeColor, WireframeConfig, WireframePlugin},
-        ExtendedMaterial,
-    },
-    prelude::*,
-    render::{
-        mesh::{Indices, MeshVertexAttribute},
-        render_resource::{PrimitiveTopology, VertexFormat},
-        settings::{RenderCreation, WgpuFeatures, WgpuSettings},
-        RenderPlugin,
-    },
-    sprite::{MaterialMesh2dBundle, Mesh2dHandle},
-};
-use bevy_egui::{egui, EguiContexts, EguiPlugin};
+use bevy::{input::common_conditions::input_just_pressed, prelude::*};
+use bevy_egui::EguiPlugin;
 
+use bevy_rapier2d::{
+    plugin::{NoUserData, RapierConfiguration, RapierPhysicsPlugin},
+    render::RapierDebugRenderPlugin,
+};
 use keyboard_events::handle_keyboard_events;
 
 use mouse_events::handle_mouse_events;
@@ -32,6 +21,14 @@ fn main() {
         .init_resource::<MapTextureNames>()
         .init_resource::<SelectedMapTextureName>()
         .init_resource::<TopPanelRect>()
+        .add_plugins((
+            RapierPhysicsPlugin::<NoUserData>::pixels_per_meter(10.0),
+            RapierDebugRenderPlugin::default(),
+        ))
+        .insert_resource(RapierConfiguration {
+            gravity: Vec2::ZERO,
+            ..Default::default()
+        })
         .add_plugins(DefaultPlugins.set(AssetPlugin {
             file_path: "../assets".to_string(),
             ..Default::default()
@@ -54,9 +51,9 @@ pub struct MainCamera;
 
 fn startup(
     mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<CustomMaterial>>,
-    asset_server: Res<AssetServer>,
+    _meshes: ResMut<Assets<Mesh>>,
+    _materials: ResMut<Assets<CustomMaterial>>,
+    _asset_server: Res<AssetServer>,
 ) {
     commands.spawn((Camera2dBundle::default(), MainCamera));
 }

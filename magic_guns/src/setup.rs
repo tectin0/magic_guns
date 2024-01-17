@@ -8,7 +8,6 @@ use bevy::{
 };
 use bevy_rapier2d::{
     control::KinematicCharacterController, dynamics::RigidBody, geometry::Collider,
-    rapier::dynamics::RigidBodyBuilder,
 };
 
 use crate::{camera::MainCamera, player::Player};
