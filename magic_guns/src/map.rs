@@ -4,12 +4,12 @@ use bevy::{
         component::Component,
         system::{Commands, ResMut},
     },
-    render::{mesh::Mesh},
+    render::mesh::Mesh,
 };
 
 use shared::{
     materials::{MapMaterial, MapMaterialHandle, STEEL_BLUE},
-    meshes::{MapMesh},
+    meshes::MapObject,
 };
 
 #[derive(Component)]
@@ -22,7 +22,8 @@ pub fn make_map(
 ) {
     let map_material_handle = map_materials.add(MapMaterial { color: STEEL_BLUE });
 
-    let map_meshes = MapMesh::meshes_from_asset_directory(&mut meshes, map_material_handle.clone());
+    let map_meshes =
+        MapObject::objects_from_objects_directory(&mut meshes, map_material_handle.clone());
 
     for map_mesh in map_meshes {
         map_mesh.spawn(&mut commands);

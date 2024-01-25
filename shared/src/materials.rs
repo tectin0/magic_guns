@@ -3,7 +3,7 @@ use std::ops::Deref;
 use bevy::{
     app::{App, Plugin},
     asset::{Asset, Assets, Handle},
-    ecs::system::{Resource},
+    ecs::system::Resource,
     reflect::TypePath,
     render::{
         color::Color,
@@ -16,7 +16,7 @@ use bevy::{
     sprite::{Material2d, Material2dKey, Material2dPlugin},
 };
 
-#[derive(Resource)]
+#[derive(Resource, Clone)]
 pub struct MapMaterialHandle(pub Handle<MapMaterial>);
 
 impl Deref for MapMaterialHandle {
@@ -24,6 +24,12 @@ impl Deref for MapMaterialHandle {
 
     fn deref(&self) -> &Self::Target {
         &self.0
+    }
+}
+
+impl Into<Handle<MapMaterial>> for MapMaterialHandle {
+    fn into(self) -> Handle<MapMaterial> {
+        self.0
     }
 }
 

@@ -4,7 +4,7 @@ use bevy::{
     render::mesh::Mesh,
 };
 use bevy_egui::{egui, EguiContexts};
-use shared::meshes::MapMesh;
+use shared::meshes::MapObject;
 
 #[derive(Resource)]
 pub struct TopPanelRect(pub egui::Rect);
@@ -19,7 +19,7 @@ pub(crate) fn ui_system(
     mut contexts: EguiContexts,
     map_texture_names: Res<MapTextureNames>,
     mut selected_map_texture_name: ResMut<SelectedMapTextureName>,
-    map_meshes: Query<&MapMesh>,
+    map_meshes: Query<&MapObject>,
     meshes: Res<Assets<Mesh>>,
     mut top_panel_rect: ResMut<TopPanelRect>,
 ) {
@@ -39,7 +39,7 @@ pub(crate) fn ui_system(
 
             ui.button("Save All").clicked().then(|| {
                 for map_mesh in map_meshes.iter() {
-                    map_mesh.mesh_to_file(&meshes);
+                    map_mesh.object_to_file(&meshes);
                 }
             });
 

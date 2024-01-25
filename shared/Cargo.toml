@@ -11,3 +11,4 @@ delaunator = "1.0.2"
 rkyv = { version = "0.7.43", features = ["validation"] }
 rand = "0.8.5"
 log = "0.4.20"
+bevy_mod_picking = "0.17.0"

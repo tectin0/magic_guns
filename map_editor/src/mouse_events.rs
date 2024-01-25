@@ -17,9 +17,9 @@ use bevy::{
 };
 use bevy_rapier2d::{pipeline::QueryFilter, plugin::RapierContext};
 use shared::{
-    materials::{MapMaterialHandle},
+    materials::MapMaterialHandle,
     math::screen_to_rapier_coords,
-    meshes::{MapMesh, SelectedEntity},
+    meshes::{MapObject, SelectedEntity},
 };
 
 use crate::{ui::TopPanelRect, MainCamera};
@@ -28,7 +28,7 @@ pub fn handle_mouse_events(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     material: Res<MapMaterialHandle>,
-    q_selected_map_mesh: Query<(&MapMesh, Entity), With<SelectedEntity>>,
+    q_selected_map_mesh: Query<(&MapObject, Entity), With<SelectedEntity>>,
     mut mouse_button_input_events: EventReader<MouseButtonInput>,
     q_windows: Query<&Window>,
     q_camera: Query<(&Camera, &GlobalTransform), With<MainCamera>>,
@@ -69,8 +69,11 @@ pub fn handle_mouse_events(
 
                         log::debug!("vertices: {:?}", vertices);
 
-                        let map_mesh =
-                            MapMesh::mesh_from_vertices(vertices, &mut meshes, material.clone());
+                        let map_mesh = MapObject::map_object_from_vertices(
+                            vertices,
+                            &mut meshes,
+                            material.clone().into(),
+                        );
 
                         let mut entity = map_mesh.spawn(&mut commands);
                         entity.insert(SelectedEntity);
@@ -84,8 +87,11 @@ pub fn handle_mouse_events(
 
                         log::debug!("vertices: {:?}", vertices);
 
-                        let map_mesh =
-                            MapMesh::mesh_from_vertices(vertices, &mut meshes, material.clone());
+                        let map_mesh = MapObject::map_object_from_vertices(
+                            vertices,
+                            &mut meshes,
+                            material.clone().into(),
+                        );
 
                         let mut entity = map_mesh.spawn(&mut commands);
                         entity.insert(SelectedEntity);
