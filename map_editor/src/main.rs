@@ -3,7 +3,11 @@ mod keyboard_events;
 mod mouse_events;
 mod ui;
 
-use bevy::{input::common_conditions::input_just_pressed, prelude::*};
+use bevy::{
+    input::common_conditions::input_just_pressed,
+    prelude::*,
+    sprite::{Material2dPlugin, MaterialMesh2dBundle, Mesh2dHandle},
+};
 use bevy_egui::EguiPlugin;
 
 use bevy_rapier2d::{
@@ -13,10 +17,21 @@ use bevy_rapier2d::{
 use keyboard_events::handle_keyboard_events;
 
 use mouse_events::handle_mouse_events;
-use shared::custom_shader::{CustomMaterial, CustomMaterialPlugin};
+use shared::{
+    custom_shader::{CustomMaterial, CustomMaterialPlugin},
+    materials::{MapMaterial, MapMaterialHandle, MapMaterialPlugin},
+    meshes::MapMesh,
+};
 use ui::{ui_system, MapTextureNames, SelectedMapTextureName, TopPanelRect};
 
 fn main() {
+    simple_logger::SimpleLogger::new()
+        .with_level(log::LevelFilter::Warn)
+        .with_module_level("map_editor", log::LevelFilter::Debug)
+        .with_module_level("shared", log::LevelFilter::Debug)
+        .init()
+        .unwrap();
+
     App::new()
         .init_resource::<MapTextureNames>()
         .init_resource::<SelectedMapTextureName>()
@@ -33,7 +48,8 @@ fn main() {
             file_path: "../assets".to_string(),
             ..Default::default()
         }))
-        .add_plugins((EguiPlugin, CustomMaterialPlugin))
+        .add_plugins(EguiPlugin)
+        .add_plugins((CustomMaterialPlugin, MapMaterialPlugin))
         .add_systems(Update, ui_system)
         .add_systems(Startup, startup)
         .add_systems(
@@ -49,11 +65,6 @@ fn main() {
 #[derive(Component)]
 pub struct MainCamera;
 
-fn startup(
-    mut commands: Commands,
-    _meshes: ResMut<Assets<Mesh>>,
-    _materials: ResMut<Assets<CustomMaterial>>,
-    _asset_server: Res<AssetServer>,
-) {
+fn startup(mut commands: Commands) {
     commands.spawn((Camera2dBundle::default(), MainCamera));
 }

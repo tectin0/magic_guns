@@ -3,7 +3,7 @@ use bevy::{
     ecs::{
         bundle::Bundle,
         component::Component,
-        system::{Res, ResMut},
+        system::{Commands, EntityCommands, Res, ResMut},
     },
     math::Vec2,
     render::{
@@ -11,12 +11,16 @@ use bevy::{
         mesh::{Indices, Mesh},
         render_resource::PrimitiveTopology,
     },
-    sprite::{MaterialMesh2dBundle, Mesh2dHandle},
+    sprite::{Material2d, MaterialMesh2dBundle, Mesh2dHandle},
 };
 use bevy_rapier2d::geometry::Collider;
 use rkyv::{Archive, Deserialize, Serialize};
 
-use crate::{custom_shader::CustomMaterial, math::triangulate};
+use crate::{
+    custom_shader::CustomMaterial,
+    materials::{MapMaterial, MapMaterialHandle},
+    math::triangulate,
+};
 
 #[derive(Component)]
 pub struct SelectedEntity;
@@ -24,7 +28,7 @@ pub struct SelectedEntity;
 #[derive(Component)]
 pub struct MapMesh {
     pub mesh_handle: Mesh2dHandle,
-    pub material_handle: Handle<CustomMaterial>,
+    pub material_handle: Handle<MapMaterial>,
     pub collider: Option<Collider>,
 }
 
@@ -35,7 +39,7 @@ impl MapMesh {
     pub fn new(
         collider: Option<Collider>,
         mesh_handle: Mesh2dHandle,
-        material_handle: Handle<CustomMaterial>,
+        material_handle: Handle<MapMaterial>,
     ) -> Self {
         Self {
             mesh_handle,
@@ -84,7 +88,7 @@ impl MapMesh {
     pub fn mesh_from_file(
         name: &str,
         meshes: &mut ResMut<Assets<Mesh>>,
-        materials: &mut ResMut<Assets<CustomMaterial>>,
+        material: Handle<MapMaterial>,
     ) -> Self {
         let bytes = std::fs::read(format!("assets/meshes/{}.mesh", name)).unwrap();
 
@@ -92,12 +96,12 @@ impl MapMesh {
             .deserialize(&mut rkyv::Infallible)
             .unwrap();
 
-        Self::mesh_from_vertices(vertices.0, meshes, materials)
+        Self::mesh_from_vertices(vertices.0, meshes, material)
     }
 
     pub fn meshes_from_asset_directory(
         meshes: &mut ResMut<Assets<Mesh>>,
-        materials: &mut ResMut<Assets<CustomMaterial>>,
+        material: Handle<MapMaterial>,
     ) -> Vec<Self> {
         let meshes_path = "assets/meshes";
 
@@ -115,7 +119,11 @@ impl MapMesh {
                     .deserialize(&mut rkyv::Infallible)
                     .unwrap();
 
-                map_meshes.push(Self::mesh_from_vertices(vertices.0, meshes, materials));
+                map_meshes.push(Self::mesh_from_vertices(
+                    vertices.0,
+                    meshes,
+                    material.clone(),
+                ));
             }
         }
 
@@ -125,32 +133,29 @@ impl MapMesh {
     pub fn mesh_from_vertices(
         vertices: Vec<[f32; 3]>,
         meshes: &mut ResMut<Assets<Mesh>>,
-        materials: &mut ResMut<Assets<CustomMaterial>>,
+        material: Handle<MapMaterial>,
     ) -> Self {
         let flatten_vertices = vertices.iter().flatten().copied().collect::<Vec<f32>>();
 
         let indices = triangulate(&vertices);
 
-        let primitive_topology = match indices.is_empty() {
-            true => PrimitiveTopology::PointList,
-            false => PrimitiveTopology::TriangleList,
+        let primitive_topology = match vertices.len() {
+            1 => PrimitiveTopology::PointList,
+            2 => PrimitiveTopology::LineList,
+            _ => PrimitiveTopology::TriangleList,
         };
+
+        log::debug!("primitive_topology: {:?}", primitive_topology);
 
         let mut mesh = Mesh::new(primitive_topology);
 
         mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertices.clone());
 
-        mesh.set_indices(Some(Indices::U32(indices.clone())));
-
-        let _mesh_handle = Mesh2dHandle(meshes.add(mesh.clone()));
+        if !indices.is_empty() {
+            mesh.set_indices(Some(Indices::U32(indices.clone())));
+        }
 
         let mesh_handle = Mesh2dHandle(meshes.add(mesh));
-        let material_handle = materials.add(CustomMaterial {
-            // steel blue
-            color: Color::rgb(0.27, 0.51, 0.71),
-            positions: flatten_vertices,
-            ..Default::default()
-        });
 
         let collider = match indices.is_empty() {
             true => None,
@@ -166,7 +171,7 @@ impl MapMesh {
             )),
         };
 
-        MapMesh::new(collider, mesh_handle.clone(), material_handle.clone())
+        MapMesh::new(collider, mesh_handle.clone(), material.clone())
     }
 
     pub fn get_mesh_mut<'a>(&self, meshes: &'a ResMut<Assets<Mesh>>) -> &'a Mesh {
@@ -177,33 +182,28 @@ impl MapMesh {
         meshes.get(self.mesh_handle.0.clone()).unwrap()
     }
 
-    pub fn get_material_mut<'a>(
-        &self,
-        materials: &'a ResMut<Assets<CustomMaterial>>,
-    ) -> &'a CustomMaterial {
-        materials.get(self.material_handle.clone()).unwrap()
-    }
-
-    pub fn get_material<'a>(
-        &self,
-        materials: &'a Res<Assets<CustomMaterial>>,
-    ) -> &'a CustomMaterial {
-        materials.get(self.material_handle.clone()).unwrap()
-    }
-
-    pub fn into_bundle(self) -> MapMeshBundle {
-        MapMeshBundle {
-            material_mesh_2d_bundle: MaterialMesh2dBundle {
-                mesh: self.mesh_handle.clone(),
-                material: self.material_handle.clone(),
-                ..Default::default()
-            },
-            collider: self
-                .collider
-                .clone()
-                .or_else(|| Some(Collider::default()))
-                .unwrap(),
-            map_mesh: self,
+    pub fn spawn<'w, 's, 'a>(
+        self,
+        commands: &'a mut Commands<'w, 's>,
+    ) -> EntityCommands<'w, 's, 'a> {
+        match self.collider {
+            Some(_) => commands.spawn((
+                MaterialMesh2dBundle {
+                    mesh: self.mesh_handle.clone(),
+                    material: self.material_handle.clone(),
+                    ..Default::default()
+                },
+                self.collider.clone().unwrap(),
+                self,
+            )),
+            None => commands.spawn((
+                MaterialMesh2dBundle {
+                    mesh: self.mesh_handle.clone(),
+                    material: self.material_handle.clone(),
+                    ..Default::default()
+                },
+                self,
+            )),
         }
     }
 }
@@ -211,6 +211,12 @@ impl MapMesh {
 #[derive(Bundle)]
 pub struct MapMeshBundle {
     pub map_mesh: MapMesh,
-    pub material_mesh_2d_bundle: MaterialMesh2dBundle<CustomMaterial>,
+    pub material_mesh_2d_bundle: MaterialMesh2dBundle<MapMaterial>,
+}
+
+#[derive(Bundle)]
+pub struct MapMeshColliderBundle {
+    pub map_mesh: MapMesh,
+    pub material_mesh_2d_bundle: MaterialMesh2dBundle<MapMaterial>,
     pub collider: Collider,
 }

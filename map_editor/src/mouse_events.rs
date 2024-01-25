@@ -11,13 +11,14 @@ use bevy::{
         ButtonState,
     },
     math::Vec2,
-    render::{camera::Camera, mesh::Mesh},
+    render::{camera::Camera, color::Color, mesh::Mesh},
     transform::components::GlobalTransform,
     window::Window,
 };
 use bevy_rapier2d::{pipeline::QueryFilter, plugin::RapierContext};
 use shared::{
     custom_shader::CustomMaterial,
+    materials::{MapMaterial, MapMaterialHandle},
     math::screen_to_rapier_coords,
     meshes::{MapMesh, SelectedEntity},
 };
@@ -27,7 +28,7 @@ use crate::{ui::TopPanelRect, MainCamera};
 pub fn handle_mouse_events(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<CustomMaterial>>,
+    material: Res<MapMaterialHandle>,
     q_selected_map_mesh: Query<(&MapMesh, Entity), With<SelectedEntity>>,
     mut mouse_button_input_events: EventReader<MouseButtonInput>,
     q_windows: Query<&Window>,
@@ -59,37 +60,38 @@ pub fn handle_mouse_events(
                         let map_mesh = selected_entity.0;
 
                         let mesh = map_mesh.get_mesh_mut(&meshes);
-                        let _material = map_mesh.get_material_mut(&materials);
 
                         let vertex_position_attribute =
                             mesh.attribute(Mesh::ATTRIBUTE_POSITION).unwrap();
-
-                        println!("{:?}", vertex_position_attribute.as_float3().unwrap());
 
                         let mut vertices = vertex_position_attribute.as_float3().unwrap().to_vec();
 
                         vertices.push([position.x, position.y, 0.0]);
 
-                        let map_mesh =
-                            MapMesh::mesh_from_vertices(vertices, &mut meshes, &mut materials);
+                        log::debug!("vertices: {:?}", vertices);
 
-                        let mut entity = commands.spawn(map_mesh.into_bundle());
+                        let map_mesh =
+                            MapMesh::mesh_from_vertices(vertices, &mut meshes, material.clone());
+
+                        let mut entity = map_mesh.spawn(&mut commands);
                         entity.insert(SelectedEntity);
 
-                        println!("Spawned entity: {:?}", entity.id());
+                        log::debug!("Spawned entity: {:?}", entity.id());
 
                         commands.entity(selected_entity.1).despawn();
                     }
                     Err(_) => {
                         let vertices = vec![[position.x, position.y, 0.0]];
 
-                        let map_mesh =
-                            MapMesh::mesh_from_vertices(vertices, &mut meshes, &mut materials);
+                        log::debug!("vertices: {:?}", vertices);
 
-                        let mut entity = commands.spawn(map_mesh.into_bundle());
+                        let map_mesh =
+                            MapMesh::mesh_from_vertices(vertices, &mut meshes, material.clone());
+
+                        let mut entity = map_mesh.spawn(&mut commands);
                         entity.insert(SelectedEntity);
 
-                        println!("Spawned entity: {:?}", entity.id());
+                        log::debug!("Spawned entity: {:?}", entity.id());
                     }
                 };
             }
@@ -106,12 +108,42 @@ pub fn handle_mouse_events(
 
                     let filter = QueryFilter::default();
 
+                    let mut selected_entity = None;
+
                     rapier_context.intersections_with_point(point, filter, |entity| {
-                        // Callback called on each collider with a shape containing the point.
-                        println!("The entity {:?} contains the point.", entity);
-                        // Return `false` instead if we want to stop searching for other colliders containing this point.
-                        true
+                        selected_entity = Some(entity);
+
+                        // Return `false` if we want to stop searching for other colliders containing this point.
+                        false
                     });
+
+                    match selected_entity {
+                        Some(selected_entity) => {
+                            println!("Selected entity: {:?}", selected_entity);
+
+                            let currently_selected_entity = match q_selected_map_mesh.get_single() {
+                                Ok(selected_entity) => Some(selected_entity.1),
+                                Err(_) => None,
+                            };
+
+                            if currently_selected_entity != Some(selected_entity) {
+                                if let Some(currently_selected_entity) = currently_selected_entity {
+                                    commands
+                                        .entity(currently_selected_entity)
+                                        .remove::<SelectedEntity>();
+                                }
+
+                                commands.entity(selected_entity).insert(SelectedEntity);
+                            }
+                        }
+                        None => {
+                            if let Ok(selected_entity) = q_selected_map_mesh.get_single() {
+                                commands
+                                    .entity(selected_entity.1)
+                                    .remove::<SelectedEntity>();
+                            }
+                        }
+                    }
                 }
             }
             _ => {}

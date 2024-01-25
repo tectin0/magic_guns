@@ -2,7 +2,7 @@ use bevy::{
     asset::Assets,
     ecs::{
         component::Component,
-        system::{Commands, ResMut},
+        system::{Commands, Res, ResMut},
     },
     render::{color::Color, mesh::Mesh},
     sprite::{ColorMaterial, MaterialMesh2dBundle},
@@ -10,6 +10,7 @@ use bevy::{
 
 use shared::{
     custom_shader::CustomMaterial,
+    materials::{MapMaterial, MapMaterialHandle, STEEL_BLUE},
     meshes::{MapMesh, SelectedEntity},
 };
 
@@ -19,12 +20,15 @@ pub struct MapTile {}
 pub fn make_map(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
-
-    mut custom_materials: ResMut<Assets<CustomMaterial>>,
+    mut map_materials: ResMut<Assets<MapMaterial>>,
 ) {
-    let map_meshes = MapMesh::meshes_from_asset_directory(&mut meshes, &mut custom_materials);
+    let map_material_handle = map_materials.add(MapMaterial { color: STEEL_BLUE });
+
+    let map_meshes = MapMesh::meshes_from_asset_directory(&mut meshes, map_material_handle.clone());
 
     for map_mesh in map_meshes {
-        commands.spawn(map_mesh.into_bundle());
+        map_mesh.spawn(&mut commands);
     }
+
+    commands.insert_resource(MapMaterialHandle(map_material_handle));
 }
