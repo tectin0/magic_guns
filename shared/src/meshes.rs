@@ -7,18 +7,16 @@ use bevy::{
     },
     math::Vec2,
     render::{
-        color::Color,
         mesh::{Indices, Mesh},
         render_resource::PrimitiveTopology,
     },
-    sprite::{Material2d, MaterialMesh2dBundle, Mesh2dHandle},
+    sprite::{MaterialMesh2dBundle, Mesh2dHandle},
 };
 use bevy_rapier2d::geometry::Collider;
 use rkyv::{Archive, Deserialize, Serialize};
 
 use crate::{
-    custom_shader::CustomMaterial,
-    materials::{MapMaterial, MapMaterialHandle},
+    materials::{MapMaterial},
     math::triangulate,
 };
 
@@ -135,7 +133,7 @@ impl MapMesh {
         meshes: &mut ResMut<Assets<Mesh>>,
         material: Handle<MapMaterial>,
     ) -> Self {
-        let flatten_vertices = vertices.iter().flatten().copied().collect::<Vec<f32>>();
+        let _flatten_vertices = vertices.iter().flatten().copied().collect::<Vec<f32>>();
 
         let indices = triangulate(&vertices);
 

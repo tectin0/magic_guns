@@ -6,7 +6,6 @@ mod ui;
 use bevy::{
     input::common_conditions::input_just_pressed,
     prelude::*,
-    sprite::{Material2dPlugin, MaterialMesh2dBundle, Mesh2dHandle},
 };
 use bevy_egui::EguiPlugin;
 
@@ -18,9 +17,8 @@ use keyboard_events::handle_keyboard_events;
 
 use mouse_events::handle_mouse_events;
 use shared::{
-    custom_shader::{CustomMaterial, CustomMaterialPlugin},
-    materials::{MapMaterial, MapMaterialHandle, MapMaterialPlugin},
-    meshes::MapMesh,
+    custom_shader::{CustomMaterialPlugin},
+    materials::{MapMaterialPlugin},
 };
 use ui::{ui_system, MapTextureNames, SelectedMapTextureName, TopPanelRect};
 

@@ -3,8 +3,7 @@ use std::ops::Deref;
 use bevy::{
     app::{App, Plugin},
     asset::{Asset, Assets, Handle},
-    ecs::system::{Commands, ResMut, Resource},
-    pbr::{Material, MaterialPipeline, MaterialPipelineKey},
+    ecs::system::{Resource},
     reflect::TypePath,
     render::{
         color::Color,

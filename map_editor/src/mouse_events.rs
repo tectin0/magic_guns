@@ -11,14 +11,13 @@ use bevy::{
         ButtonState,
     },
     math::Vec2,
-    render::{camera::Camera, color::Color, mesh::Mesh},
+    render::{camera::Camera, mesh::Mesh},
     transform::components::GlobalTransform,
     window::Window,
 };
 use bevy_rapier2d::{pipeline::QueryFilter, plugin::RapierContext};
 use shared::{
-    custom_shader::CustomMaterial,
-    materials::{MapMaterial, MapMaterialHandle},
+    materials::{MapMaterialHandle},
     math::screen_to_rapier_coords,
     meshes::{MapMesh, SelectedEntity},
 };

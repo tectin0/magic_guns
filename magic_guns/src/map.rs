@@ -2,16 +2,14 @@ use bevy::{
     asset::Assets,
     ecs::{
         component::Component,
-        system::{Commands, Res, ResMut},
+        system::{Commands, ResMut},
     },
-    render::{color::Color, mesh::Mesh},
-    sprite::{ColorMaterial, MaterialMesh2dBundle},
+    render::{mesh::Mesh},
 };
 
 use shared::{
-    custom_shader::CustomMaterial,
     materials::{MapMaterial, MapMaterialHandle, STEEL_BLUE},
-    meshes::{MapMesh, SelectedEntity},
+    meshes::{MapMesh},
 };
 
 #[derive(Component)]
