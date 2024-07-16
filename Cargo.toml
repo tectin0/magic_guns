@@ -1,7 +1,3 @@
 [workspace]
 resolver = "2"
-members = [
-    "magic_guns",
-    "map_editor",
-    "shared",
-]
+members = ["magic_guns", "shared"]
